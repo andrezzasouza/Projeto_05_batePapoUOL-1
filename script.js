@@ -1,5 +1,6 @@
 const user = {};
 
+let lastMessageSaved, lastMessage;
 
 function login(){
     const username = prompt("Qual o seu nome de usuário?");
@@ -20,20 +21,23 @@ function checkConnection(){
 }
 
 function handleError(error){
-    console.log("Status code: " + error.response.status);
-	console.log("Mensagem de erro: " + error.response.data);
+    console.log("Status code: " + error.status);
+	console.log("Mensagem de erro: " + error.data);
 }
 
 function getMessages(){
     const promise = axios.get("https://mock-api.driven.com.br/api/v6/uol/messages");
     promise.then ((response) => {
+        lastMessageSaved = document.querySelector("ul").lastElementChild;
         clear();
         response.data.map((message) => {
             if(message.to === "Todos" || message.to === user.name){
                 displayMessages(message);
             }
-        })
-    })
+        });
+        lastMessage = document.querySelector("ul").lastElementChild;
+        scrollMessages();
+    });
     promise.catch(()=>{
         alert("qualquer coisa")
     })
@@ -57,15 +61,15 @@ function displayMessages(msg){
 }
 
 function displayStatusMessages(message){
-    document.querySelector("ul").innerHTML += `<li class="status-messages"><p><span class = "time">${message.time}</span> <strong> ${message.from} <strong> entra na sala ... </p> </li>`;
+    document.querySelector("ul").innerHTML += `<li class="status-messages"><p><span class = "time">(${message.time})</span> <strong> ${message.from} </strong> entra na sala ... </p> </li>`;
 }
 
 function displayNormalMessages(message){
-    document.querySelector("ul").innerHTML += `<li class="normal-messages"><p><span class = "time">${message.time}</span> <strong> ${message.from} </strong> para <strong> ${message.to}</strong>: ${message.text}</p> </li>`;
+    document.querySelector("ul").innerHTML += `<li class="normal-messages"><p><span class = "time">(${message.time})</span> <strong> ${message.from} </strong> para <strong> ${message.to}</strong>: ${message.text}</p> </li>`;
 }
 
 function displayPrivateMessages(message){
-    document.querySelector("ul").innerHTML += `<li class="private-messages"><p><span class = "time">${message.time}</span> <strong> ${message.from} </strong> reservadamente para <strong> ${message.to}</strong>: ${message.text}</p> </li>`;
+    document.querySelector("ul").innerHTML += `<li class="private-messages"><p><span class = "time">(${message.time})</span> <strong> ${message.from} </strong> reservadamente para <strong> ${message.to}</strong>: ${message.text}</p> </li>`;
 }
 
 
@@ -73,6 +77,28 @@ function clear(){
     document.querySelector("ul").innerHTML = "";
 }
 
+function sendMessages(message){
+    const promise = axios.post("https://mock-api.driven.com.br/api/v6/uol/messages", {from: user.name, to:"Todos", text: message.children[0].value, type: "message"});
+    message.children[0].value = "";
+    promise.then(getMessages);
+    promise.catch(() => {
+        alert("Houve algum problema na conexão, clique em OK para entrar de novo na sala.");
+        window.location.reload();
+    })
+
+}
+
+function reload(){
+    setInterval(getMessages, 3000);
+}
+
+function scrollMessages(){
+    const lastMessageIntoView = document.querySelector("ul").lastElementChild;
+    if (lastMessageSaved !== lastMessage){
+        lastMessageIntoView.scrollIntoView();
+    }
+}
 
 login();
 getMessages();
+reload();
